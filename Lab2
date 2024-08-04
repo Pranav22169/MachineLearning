@@ -1,1 +1,618 @@
+#A1
+import pandas as pd
+import numpy as np
+
+# Function to read data from an Excel file and return matrices
+def load_data(file_path, sheet_name):
+    buying_data = pd.read_excel(file_path, sheet_name=sheet_name)
+    matA = buying_data[['Candies (#)', 'Mangoes (Kg)', 'Milk Packets (#)']].dropna().values
+    matC = buying_data['Payment (Rs)'].dropna().values
+    return matA, matC
+
+# Function to calculate matrix properties and cost of products
+def calculate_costs(matA, matC):
+    dim = matA.shape[1]  # Number of features (columns) in matA
+    n_vec = matA.shape[0]  # Number of observations (rows) in matA
+    rank = np.linalg.matrix_rank(matA)  # Rank of matrix matA
+    A_pseudo_inv = np.linalg.pinv(matA)  # Pseudo-inverse of matrix matA
+    matX = A_pseudo_inv @ matC  # Compute the cost of products
+    
+    return dim, n_vec, rank, matX
+
+# Function to print results
+def print_results(dim, n_vec, rank, matX):
+    print("Dimensionality = : ", dim)
+    print("No of vectors = ", n_vec)
+    print("Rank of matA: ", rank)
+    print("Cost of products: :")
+    print(" - Candies: Rs: {:.2f}".format(matX[0]))
+    print(" - Mangoes: Rs: {:.2f}".format(matX[1]))
+    print(" - Milk Packets: Rs: {:.2f}".format(matX[2]))
+
+# Main code execution
+file_path = r"C:\Users\prabi\Downloads\Lab Session Data.xlsx"  # Path to the Excel file
+sheet_name = 'Purchase data'  # Sheet name containing the data
+
+matA, matC = load_data(file_path, sheet_name)  # Load data from the file
+dim, n_vec, rank, matX = calculate_costs(matA, matC)  # Perform calculations
+print_results(dim, n_vec, rank, matX)  # Print the results
+
+#A2 Same as A1
+
+#A3
+import pandas as pd
+import numpy as np
+
+# Function to read data from an Excel file and return matrices
+def load_data(file_path, sheet_name):
+    buying_data = pd.read_excel(file_path, sheet_name=sheet_name)
+    matA = buying_data[['Candies (#)', 'Mangoes (Kg)', 'Milk Packets (#)']].dropna().values
+    matC = buying_data['Payment (Rs)'].dropna().values
+    return buying_data, matA, matC
+
+# Function to calculate matrix properties and cost of products
+def calculate_costs(matA, matC):
+    dim = matA.shape[1]  # Number of features (columns) in matA
+    n_vec = matA.shape[0]  # Number of observations (rows) in matA
+    rank = np.linalg.matrix_rank(matA)  # Rank of matrix matA
+    A_pseudo_inv = np.linalg.pinv(matA)  # Pseudo-inverse of matrix matA
+    matX = A_pseudo_inv @ matC  # Compute the cost of products
+    
+    return dim, n_vec, rank, matX
+
+# Function to print results
+def print_results(dim, n_vec, rank, matX):
+    print("Dimensionality = : ", dim)
+    print("No of vectors = ", n_vec)
+    print("Rank of matA: ", rank)
+    print("Cost of products: :")
+    print(" - Candies: Rs: {:.2f}".format(matX[0]))
+    print(" - Mangoes: Rs: {:.2f}".format(matX[1]))
+    print(" - Milk Packets: Rs: {:.2f}".format(matX[2]))
+
+# Function to add status column based on payment
+def add_status_column(data):
+    data['status'] = data['Payment (Rs)'].apply(lambda x: "RICH" if x > 200 else "POOR")
+    return data
+
+# Main code execution
+file_path = r"C:\Users\prabi\Downloads\Lab Session Data.xlsx"  # Path to the Excel file
+sheet_name = 'Purchase data'  # Sheet name containing the data
+
+buying_data, matA, matC = load_data(file_path, sheet_name)  # Load data from the file
+dim, n_vec, rank, matX = calculate_costs(matA, matC)  # Perform calculations
+print_results(dim, n_vec, rank, matX)  # Print the results
+
+# Add status column and print the updated data
+buying_data = add_status_column(buying_data)
+print(buying_data[['Payment (Rs)', 'status']].head())  # Display the updated DataFrame
+
+#A4
+import pandas as pd
+import numpy as np
+import statistics
+import matplotlib.pyplot as plt
+
+# Function to load data from an Excel file
+def load_data(file_path, sheet_name):
+    return pd.read_excel(file_path, sheet_name=sheet_name)
+
+# Function to calculate basic statistics of price data
+def calculate_statistics(price_data):
+    mean = statistics.mean(price_data)
+    variance = statistics.variance(price_data)
+    return mean, variance
+
+# Function to compute the mean price on Wednesdays
+def mean_price_on_day(data, day_name):
+    return statistics.mean(data[data['Date'].dt.day_name() == day_name]['Price'])
+
+# Function to compute mean price for a specific month
+def mean_price_for_month(data, month):
+    return statistics.mean(data[data['Date'].dt.month == month]['Price'])
+
+# Function to calculate the probability of loss and profit on Wednesdays
+def calculate_probabilities(data):
+    chg = data.iloc[:, 8]  # Assuming the 9th column contains 'Chg'
+    loss_prob = np.mean(chg < 0)
+    
+    wednesday = data[data['Date'].dt.day_name() == 'Wednesday']
+    wed_prof = wednesday[chg < 0].shape[0]
+    total_wed = wednesday.shape[0]
+    prob_wed_prof = 1 - (wed_prof / total_wed)
+    
+    return loss_prob, prob_wed_prof
+
+# Function to plot scatter plot of change percentages against days of the week
+def plot_change_by_day(data):
+    data['Day of Week'] = data['Date'].dt.day_name()
+    plt.figure(figsize=(10, 6))
+    plt.scatter(data['Day of Week'], data['Chg%'])
+    plt.title('Scatter Plot of Chg% Against Day of the Week')
+    plt.xlabel('Day of the Week')
+    plt.ylabel('Chg%')
+    plt.xticks(rotation=45)
+    plt.grid(True)
+    plt.show()
+
+# Main code execution
+file_path = r"C:\Users\prabi\Downloads\Lab Session Data.xlsx"
+sheet_name = 'IRCTC Stock Price'
+
+# Load data from the file
+buying_data = load_data(file_path, sheet_name)
+
+# Calculate statistics
+data_of_price = buying_data.iloc[:, 3]
+mean, variance = calculate_statistics(data_of_price)
+print("Mean = ", mean)
+print("Variance = ", variance)
+
+# Calculate and print mean prices for specific conditions
+mean_wed = mean_price_on_day(buying_data, 'Wednesday')
+print(f"Wednesday mean: {mean_wed:.2f}")
+print(f"Wednesday Comparison: {mean_wed - mean:.2f}")
+
+mean_apr = mean_price_for_month(buying_data, 4)  # April is month 4
+print(f"April data: {mean_apr:.2f}")
+print(f"April comparison: {mean_apr - mean:.2f}")
+
+# Calculate and print probabilities
+loss_prob, prob_wed_prof = calculate_probabilities(buying_data)
+print(f"Probability of Loss: {loss_prob:.2f}")
+print(f"Probability of Making a Profit on Wednesday: {prob_wed_prof:.2f}")
+
+# Plot the scatter plot
+plot_change_by_day(buying_data)
+
+
+#A5
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+
+# Function to load data from an Excel file
+def load_data(file_path, sheet_name):
+    return pd.read_excel(file_path, sheet_name=sheet_name)
+
+# Function to encode categorical variables using one-hot encoding
+def encode_categorical(df):
+    return pd.get_dummies(df, drop_first=True)
+
+# Function to get summary statistics for numeric data
+def get_numeric_summary(df):
+    return df.describe()
+
+# Function to count missing values in each column
+def count_missing_values(df):
+    return df.isnull().sum()
+
+# Function to plot boxplots for numeric columns
+def plot_boxplots(df):
+    numeric_columns = df.select_dtypes(include=['float64', 'int64']).columns
+    plt.figure(figsize=(10, 8))
+    sns.boxplot(data=df[numeric_columns])
+    plt.title('Boxplot of Numeric Columns')
+    plt.show()
+
+# Function to calculate mean and standard deviation of numeric columns
+def calculate_mean_std(df):
+    numeric_columns = df.select_dtypes(include=['float64', 'int64']).columns
+    mean_vals = df[numeric_columns].mean()
+    std_vals = df[numeric_columns].std()
+    return mean_vals, std_vals
+
+# Main code execution
+file_path = r"C:\Users\prabi\Downloads\Lab Session Data.xlsx"
+sheet_name = 'thyroid0387_UCI'
+
+# Load data from the file
+df = load_data(file_path, sheet_name)
+
+# Display the first few rows of the DataFrame
+print(df.head())
+
+# Identify and print the type of each attribute
+attribute_types = df.dtypes
+print("Attribute Types:\n", attribute_types)
+
+# One-hot encode categorical variables and display the first few rows
+df_encoded = encode_categorical(df)
+print("Encoded DataFrame:\n", df_encoded.head())
+
+# Summary statistics for numeric data
+numeric_summary = get_numeric_summary(df)
+print("Numeric Summary Statistics:\n", numeric_summary)
+
+# Count and print missing values for each column
+missing_values = count_missing_values(df)
+print("Missing Values:\n", missing_values)
+
+# Plot boxplots for numeric columns
+plot_boxplots(df)
+
+# Calculate and print mean and standard deviation for numeric columns
+mean_vals, std_vals = calculate_mean_std(df)
+print("Mean values:\n", mean_vals)
+print("Standard deviation values:\n", std_vals)
+
+
+#A6
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.preprocessing import LabelEncoder, OneHotEncoder
+
+# Function to load data from an Excel file
+def load_data(file_path, sheet_name):
+    return pd.read_excel(file_path, sheet_name=sheet_name)
+
+# Function to one-hot encode categorical variables
+def encode_categorical(df):
+    return pd.get_dummies(df, drop_first=True)
+
+# Function to get summary statistics for numeric columns
+def get_numeric_summary(df):
+    return df.describe()
+
+# Function to count missing values in each column
+def count_missing_values(df):
+    return df.isnull().sum()
+
+# Function to plot boxplots for numeric columns
+def plot_boxplots(df):
+    numeric_columns = df.select_dtypes(include=['float64', 'int64']).columns
+    plt.figure(figsize=(10, 8))
+    sns.boxplot(data=df[numeric_columns])
+    plt.title('Boxplot of Numeric Columns')
+    plt.show()
+
+# Function to calculate mean and standard deviation for numeric columns
+def calculate_mean_std(df):
+    numeric_columns = df.select_dtypes(include=['float64', 'int64']).columns
+    mean_vals = df[numeric_columns].mean()
+    std_vals = df[numeric_columns].std()
+    return mean_vals, std_vals
+
+# Function to handle missing values
+def impute_missing_values(df):
+    numeric_columns = df.select_dtypes(include=['float64', 'int64']).columns
+    categorical_columns = df.select_dtypes(include=['object']).columns
+    
+    for col in numeric_columns:
+        if (df[col] - df[col].mean()).abs().max() <= 3 * df[col].std():
+            df[col].fillna(df[col].mean(), inplace=True)
+        else:
+            df[col].fillna(df[col].median(), inplace=True)
+    
+    for col in categorical_columns:
+        df[col].fillna(df[col].mode()[0], inplace=True)
+    
+    return df
+
+# Main code execution
+file_path = r"C:\Users\prabi\Downloads\Lab Session Data.xlsx"
+sheet_name = 'thyroid0387_UCI'
+
+# Load data from the file
+df = load_data(file_path, sheet_name)
+
+# Display the first few rows of the DataFrame
+print("Initial DataFrame:\n", df.head())
+
+# Identify and print the type of each attribute
+attribute_types = df.dtypes
+print("Attribute Types:\n", attribute_types)
+
+# One-hot encode categorical variables and display the first few rows
+df_encoded = encode_categorical(df)
+print("Encoded DataFrame:\n", df_encoded.head())
+
+# Summary statistics for numeric data
+numeric_summary = get_numeric_summary(df)
+print("Numeric Summary Statistics:\n", numeric_summary)
+
+# Count and print missing values for each column
+missing_values = count_missing_values(df)
+print("Missing Values Before Imputation:\n", missing_values)
+
+# Plot boxplots for numeric columns
+plot_boxplots(df)
+
+# Calculate and print mean and standard deviation for numeric columns
+mean_vals, std_vals = calculate_mean_std(df)
+print("Mean values:\n", mean_vals)
+print("Standard deviation values:\n", std_vals)
+
+# Handle missing values and display the DataFrame and missing values after imputation
+df_imputed = impute_missing_values(df)
+missing_values_after_imputation = count_missing_values(df_imputed)
+print("DataFrame After Imputation:\n", df_imputed.head())
+print("Missing Values After Imputation:\n", missing_values_after_imputation)
+
+
+#A7
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.preprocessing import MinMaxScaler, StandardScaler
+
+# Function to load data from an Excel file
+def load_data(file_path, sheet_name):
+    return pd.read_excel(file_path, sheet_name=sheet_name)
+
+# Function to one-hot encode categorical variables
+def encode_categorical(df):
+    return pd.get_dummies(df, drop_first=True)
+
+# Function to get summary statistics for numeric columns
+def get_numeric_summary(df):
+    return df.describe()
+
+# Function to count missing values in each column
+def count_missing_values(df):
+    return df.isnull().sum()
+
+# Function to plot boxplots for numeric columns
+def plot_boxplots(df):
+    numeric_columns = df.select_dtypes(include=['float64', 'int64']).columns
+    plt.figure(figsize=(10, 8))
+    sns.boxplot(data=df[numeric_columns])
+    plt.title('Boxplot of Numeric Columns')
+    plt.show()
+
+# Function to calculate mean and standard deviation for numeric columns
+def calculate_mean_std(df):
+    numeric_columns = df.select_dtypes(include=['float64', 'int64']).columns
+    mean_vals = df[numeric_columns].mean()
+    std_vals = df[numeric_columns].std()
+    return mean_vals, std_vals
+
+# Function to handle missing values
+def impute_missing_values(df):
+    numeric_columns = df.select_dtypes(include=['float64', 'int64']).columns
+    categorical_columns = df.select_dtypes(include=['object']).columns
+    
+    for col in numeric_columns:
+        if (df[col] - df[col].mean()).abs().max() <= 3 * df[col].std():
+            df[col].fillna(df[col].mean(), inplace=True)
+        else:
+            df[col].fillna(df[col].median(), inplace=True)
+    
+    for col in categorical_columns:
+        df[col].fillna(df[col].mode()[0], inplace=True)
+    
+    return df
+
+# Function to normalize numeric columns
+def normalize_data(df):
+    scaler = MinMaxScaler()
+    df_normalized = df.copy()
+    numeric_columns = df.select_dtypes(include=['float64', 'int64']).columns
+    df_normalized[numeric_columns] = scaler.fit_transform(df[numeric_columns])
+    return df_normalized
+
+# Function to standardize numeric columns
+def standardize_data(df):
+    scaler = StandardScaler()
+    df_standardized = df.copy()
+    numeric_columns = df.select_dtypes(include=['float64', 'int64']).columns
+    df_standardized[numeric_columns] = scaler.fit_transform(df[numeric_columns])
+    return df_standardized
+
+# Main code execution
+file_path = r"C:\Users\prabi\Downloads\Lab Session Data.xlsx"
+sheet_name = 'thyroid0387_UCI'
+
+# Load data from the file
+df = load_data(file_path, sheet_name)
+
+# Display the first few rows of the DataFrame
+print("Initial DataFrame:\n", df.head())
+
+# Identify and print the type of each attribute
+attribute_types = df.dtypes
+print("Attribute Types:\n", attribute_types)
+
+# One-hot encode categorical variables and display the first few rows
+df_encoded = encode_categorical(df)
+print("Encoded DataFrame:\n", df_encoded.head())
+
+# Summary statistics for numeric data
+numeric_summary = get_numeric_summary(df)
+print("Numeric Summary Statistics:\n", numeric_summary)
+
+# Count and print missing values for each column
+missing_values = count_missing_values(df)
+print("Missing Values Before Imputation:\n", missing_values)
+
+# Plot boxplots for numeric columns
+plot_boxplots(df)
+
+# Calculate and print mean and standard deviation for numeric columns
+mean_vals, std_vals = calculate_mean_std(df)
+print("Mean values:\n", mean_vals)
+print("Standard deviation values:\n", std_vals)
+
+# Handle missing values and display the DataFrame and missing values after imputation
+df_imputed = impute_missing_values(df)
+missing_values_after_imputation = count_missing_values(df_imputed)
+print("DataFrame After Imputation:\n", df_imputed.head())
+print("Missing Values After Imputation:\n", missing_values_after_imputation)
+
+# Display summary statistics after imputation
+print("Summary Statistics After Imputation:\n", df_imputed[numeric_columns].describe())
+
+# Normalize and standardize numeric columns
+df_normalized = normalize_data(df_imputed)
+df_standardized = standardize_data(df_imputed)
+
+print("Normalized DataFrame:\n", df_normalized.head())
+print("Standardized DataFrame:\n", df_standardized.head())
+
+#A8
+import pandas as pd
+import numpy as np
+
+# Function to load data from an Excel file
+def load_data(file_path, sheet_name):
+    return pd.read_excel(file_path, sheet_name=sheet_name)
+
+# Function to calculate Jaccard Coefficient (JC) and Simple Matching Coefficient (SMC)
+def calculate_coefficients(df, binary_cols):
+    # Drop rows with NaN values in the specified binary columns
+    df_without_nan = df[binary_cols].dropna()
+
+    # Extract vectors from the first two rows
+    vec1 = df_without_nan.iloc[0].values
+    vec2 = df_without_nan.iloc[1].values
+    
+    # Compute the frequency of each combination of values
+    f00 = np.sum((vec1 == 0) & (vec2 == 0))
+    f01 = np.sum((vec1 == 0) & (vec2 == 1))
+    f10 = np.sum((vec1 == 1) & (vec2 == 0))
+    f11 = np.sum((vec1 == 1) & (vec2 == 1))
+
+    # Calculate Jaccard Coefficient (JC) and Simple Matching Coefficient (SMC)
+    JC = f11 / (f01 + f10 + f11)
+    SMC = (f11 + f00) / (f00 + f01 + f10 + f11)
+    
+    return JC, SMC
+
+# Main code execution
+file_path = r"C:\Users\prabi\Downloads\Lab Session Data.xlsx"
+sheet_name = 'thyroid0387_UCI'
+binary_cols = ['FTI', 'T3', 'TSH']
+
+# Load data
+df = load_data(file_path, sheet_name)
+
+# Calculate coefficients
+JC, SMC = calculate_coefficients(df, binary_cols)
+
+# Print results
+print("JC is: {:.4f}".format(JC))
+print("SMC is: {:.4f}".format(SMC))
+
+#A9
+import pandas as pd
+import numpy as np
+from scipy.spatial.distance import cosine
+
+# Function to load data from an Excel file
+def load_data(file_path, sheet_name):
+    return pd.read_excel(file_path, sheet_name=sheet_name)
+
+# Function to calculate cosine similarity between the first two numeric vectors
+def calculate_cosine_similarity(df):
+    # Select numeric columns
+    num_data = df.select_dtypes(include=[np.number])
+    
+    # Check if there are at least two numeric rows
+    if len(num_data) >= 2:
+        # Extract vectors from the first two rows
+        vec1 = num_data.iloc[0].values
+        vec2 = num_data.iloc[1].values
+        
+        # Print vectors
+        print("Vector 1:", vec1)
+        print("Vector 2:", vec2)
+        
+        # Calculate cosine similarity
+        cosine_similarity = 1 - cosine(vec1, vec2)
+        return cosine_similarity
+    else:
+        # Return a message indicating insufficient data
+        return "Not enough numeric data to compute cosine similarity."
+
+# Main code execution
+file_path = r"C:\Users\prabi\Downloads\Lab Session Data.xlsx"
+sheet_name = 'thyroid0387_UCI'
+
+# Load data
+df = load_data(file_path, sheet_name)
+
+# Calculate cosine similarity and handle cases where there is not enough data
+result = calculate_cosine_similarity(df)
+if isinstance(result, str):  # Check if result is an error message
+    print(result)
+else:
+    print("Cosine Similarity: {:.4f}".format(result))
+
+
+#A10
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from sklearn.preprocessing import LabelEncoder
+from sklearn.metrics import pairwise_distances
+
+# Function to load data from an Excel file
+def load_data(file_path, sheet_name):
+    return pd.read_excel(file_path, sheet_name=sheet_name)
+
+# Function to preprocess the dataset
+def preprocess_data(df):
+    # Select a subset of the data (first 20 rows)
+    data_set = df.iloc[:20]
+    
+    # Encode categorical columns
+    for c in data_set.columns:
+        if data_set[c].dtype == 'object':
+            le = LabelEncoder()
+            data_set[c] = le.fit_transform(data_set[c].astype(str))
+    return data_set
+
+# Function to compute similarity matrices
+def compute_similarity_matrices(data_set):
+    data_set2 = data_set.values
+    
+    # Compute Jaccard Similarity
+    jc_sim = 1 - pairwise_distances(data_set2, metric='jaccard')
+    
+    # Compute Simple Matching Coefficient Similarity
+    smc_sim = 1 - pairwise_distances(data_set2, metric=lambda u, v: np.sum(u == v) / len(u))
+    
+    # Compute Cosine Similarity
+    cosine_sim = 1 - pairwise_distances(data_set2, metric='cosine')
+    
+    return jc_sim, smc_sim, cosine_sim
+
+# Function to plot similarity heatmaps
+def plot_heatmaps(jc_sim, smc_sim, cosine_sim):
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(jc_sim, annot=True, cmap='coolwarm')
+    plt.title('Jaccard Similarity Heatmap')
+    plt.show()
+    
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(smc_sim, annot=True, cmap='coolwarm')
+    plt.title('Simple Matching Coefficient Similarity Heatmap')
+    plt.show()
+    
+    plt.figure(figsize=(10, 8))
+    sns.heatmap(cosine_sim, annot=True, cmap='coolwarm')
+    plt.title('Cosine Similarity Heatmap')
+    plt.show()
+
+# Main code execution
+file_path = r"C:\Users\prabi\Downloads\Lab Session Data.xlsx"
+sheet_name = 'thyroid0387_UCI'
+
+# Load and preprocess data
+df = load_data(file_path, sheet_name)
+data_set = preprocess_data(df)
+
+# Compute similarity matrices
+jc_sim, smc_sim, cosine_sim = compute_similarity_matrices(data_set)
+
+# Plot heatmaps
+plot_heatmaps(jc_sim, smc_sim, cosine_sim)
+
+
 
