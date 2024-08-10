@@ -1,1 +1,210 @@
 
+import pandas as pd
+import numpy as np
+import seaborn as sns
+import matplotlib.pyplot as plt
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import confusion_matrix, precision_score, recall_score, f1_score, accuracy_score
+from scipy.spatial.distance import minkowski
+
+# Function to load data from an Excel file
+def load_data(file_path, sheet_name):
+    return pd.read_excel(file_path, sheet_name=sheet_name)
+
+# Function to preprocess the data by separating numeric and non-numeric columns
+def preprocess_data(df):
+    non_num_cols = df.select_dtypes(exclude=[np.number]).columns
+    print("Columns where there are no numbers or numeric data:", non_num_cols)
+    df_numeric = df.drop(columns=non_num_cols)
+    return df_numeric
+
+# Function to calculate and print class centroids, spreads, and distance
+def analyze_classes(x, y):
+    uniques = np.unique(y)
+    print("Unique classes in thyroid dataset:", uniques)
+    
+    label_class1, label_class2 = uniques[0], uniques[1]
+    class1, class2 = x[y == label_class1], x[y == label_class2]
+    
+    if class1.size > 0 and class2.size > 0:
+        centroid1 = np.mean(class1, axis=0)
+        centroid2 = np.mean(class2, axis=0)
+        sprd1 = np.std(class1, axis=0)
+        sprd2 = np.std(class2, axis=0)
+        dist = np.linalg.norm(centroid1 - centroid2)
+
+        print(f"Class 1 ('{label_class1}') centroid:", centroid1)
+        print(f"Class 2 ('{label_class2}') centroid:", centroid2)
+        print(f"Class 1 ('{label_class1}') spread:", sprd1)
+        print(f"Class 2 ('{label_class2}') spread:", sprd2)
+        print("Distance:", dist)
+    else:
+        print("Insufficient data for analysis.")
+
+# Function to plot histogram for a specific feature
+def plot_feature_histogram(ftr):
+    hist, bins = np.histogram(ftr, bins=10)
+    plt.hist(ftr, bins=10)
+    plt.title('Feature Histogram')
+    plt.show()
+    print("Feature Mean:", np.mean(ftr))
+    print("Feature Variance:", np.var(ftr))
+
+# Function to plot Minkowski distance for different values of r
+def plot_minkowski_distances(ftr1, ftr2):
+    dists = [minkowski(ftr1, ftr2, r) for r in range(1, 11)]
+    plt.plot(range(1, 11), dists)
+    plt.xlabel('Minkowski r')
+    plt.ylabel('Distance')
+    plt.title('Minkowski Distance for r=1 to 10')
+    plt.show()
+
+# Function to split data into training and testing sets
+def split_data(x, y, test_size=0.3, random_state=42):
+    return train_test_split(x, y, test_size=test_size, random_state=random_state)
+
+# Function to train and evaluate k-NN classifier
+def evaluate_knn(x_train, x_test, y_train, y_test):
+    knn = KNeighborsClassifier(n_neighbors=3)
+    knn.fit(x_train, y_train)
+    acc = knn.score(x_test, y_test)
+    preds = knn.predict(x_test)
+
+    print("kNN Accuracy:", acc)
+    print("Accuracy:", accuracy_score(y_test, preds))
+    print("Confusion Matrix:\n", confusion_matrix(y_test, preds))
+    print("Predictions:", preds)
+    return preds
+
+# Function to plot accuracy for varying k values in k-NN
+def plot_knn_accuracy(x_train, x_test, y_train, y_test):
+    accs = []
+    for k in range(1, 12):
+        knn = KNeighborsClassifier(n_neighbors=k)
+        knn.fit(x_train, y_train)
+        accs.append(knn.score(x_test, y_test))
+
+    plt.plot(range(1, 12), accs)
+    plt.xlabel('k')
+    plt.ylabel('Accuracy')
+    plt.title('k-NN Accuracy for varying k')
+    plt.show()
+
+# Function to calculate and print evaluation metrics
+def print_evaluation_metrics(y_test, preds):
+    conf_mat = confusion_matrix(y_test, preds)
+    prec = precision_score(y_test, preds, average='macro')
+    recall = recall_score(y_test, preds, average='macro')
+    f1 = f1_score(y_test, preds, average='macro')
+
+    print("Confusion Matrix:\n", conf_mat)
+    print("Precision:", prec)
+    print("Recall:", recall)
+    print("F1 Score:", f1)
+
+# Main code execution
+file_path = r"C:\Users\prabi\Downloads\Lab Session Data.xlsx"
+sheet_name = 'thyroid0387_UCI'
+
+# Load and preprocess data
+df = load_data(file_path, sheet_name)
+df_numeric = preprocess_data(df)
+
+x = df_numeric.iloc[:, :-1].values
+y = df.iloc[:, -1].values 
+
+# Analyze classes
+analyze_classes(x, y)
+
+# Plot feature histogram
+ftr = x[:, 0]
+plot_feature_histogram(ftr)
+
+# Plot Minkowski distances
+if x.shape[1] > 1:
+    plot_minkowski_distances(x[:, 0], x[:, 1])
+else:
+    print("Insufficient feature columns for Minkowski distance.")
+
+# Split data and evaluate k-NN
+x_train, x_test, y_train, y_test = split_data(x, y)
+preds = evaluate_knn(x_train, x_test, y_train, y_test)
+
+# Plot k-NN accuracy
+plot_knn_accuracy(x_train, x_test, y_train, y_test)
+
+# Print evaluation metrics
+print_evaluation_metrics(y_test, preds)
+
+#---------------------------------------------------------
+
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.neighbors import KNeighborsClassifier
+from sklearn.metrics import confusion_matrix, precision_score, recall_score, f1_score, accuracy_score
+from sklearn.impute import SimpleImputer
+
+# Function to load and preprocess the data
+def load_and_preprocess_data(file_path, sheet_name):
+    # Load data from the Excel file
+    df = pd.read_excel(file_path, sheet_name=sheet_name)
+    
+    # Identify and print non-numeric columns
+    non_num_cols = df.select_dtypes(exclude=[np.number]).columns
+    print("Non-numeric columns:", non_num_cols)
+    
+    # Drop non-numeric columns and separate features and target variable
+    df_num = df.drop(columns=non_num_cols)
+    x = df_num.iloc[:, :-1].values
+    y = df.iloc[:, -1].values
+    
+    return x, y
+
+# Function to handle missing values
+def handle_missing_values(x, y):
+    print("Missing values in x:", np.isnan(x).sum())
+    print("Missing values in y:", pd.isnull(y).sum())  # Using pd.isnull() for y
+    
+    # Impute missing values in x with the mean strategy
+    imputer = SimpleImputer(strategy='mean')
+    x_imputed = imputer.fit_transform(x)
+    
+    return x_imputed
+
+# Function to train and evaluate k-NN classifier
+def train_and_evaluate_knn(x_train, x_test, y_train, y_test):
+    # Initialize and train k-NN classifier
+    knn = KNeighborsClassifier(n_neighbors=3)
+    knn.fit(x_train, y_train)
+    
+    # Evaluate the model
+    acc = knn.score(x_test, y_test)
+    preds = knn.predict(x_test)
+    
+    print("kNN Accuracy:", acc)
+    print("Accuracy:", accuracy_score(y_test, preds))
+    print("Confusion Matrix:\n", confusion_matrix(y_test, preds))
+    print("Predictions:", preds)
+    
+    return preds
+
+# Main code execution
+file_path = r"C:\Users\prabi\Downloads\Lab Session Data.xlsx"
+sheet_name = 'thyroid0387_UCI'
+
+# Load and preprocess the data
+x, y = load_and_preprocess_data(file_path, sheet_name)
+
+# Handle missing values
+x_imputed = handle_missing_values(x, y)
+
+# Split data into training and testing sets
+x_train, x_test, y_train, y_test = train_test_split(x_imputed, y, test_size=0.3, random_state=42)
+
+# Train and evaluate the k-NN classifier
+preds = train_and_evaluate_knn(x_train, x_test, y_train, y_test)
+
+
+
