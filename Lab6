@@ -1,1 +1,252 @@
 
+import numpy as np
+import matplotlib.pyplot as plt
+import pandas as pd
+from sklearn.neural_network import MLPClassifier
+
+# A1: Perceptron Modules
+def summation_unit(inputs, weights):
+    return np.dot(inputs, weights)
+
+def step_function(x):
+    return 1 if x >= 0 else 0
+
+def bipolar_step_function(x):
+    return 1 if x >= 0 else -1
+
+def sigmoid(x):
+    return 1 / (1 + np.exp(-x))
+
+def tanh(x):
+    return np.tanh(x)
+
+def relu(x):
+    return max(0, x)
+
+def leaky_relu(x, alpha=0.01):
+    return x if x > 0 else alpha * x
+
+def calculate_error(target, output):
+    return target - output
+
+# A2: Perceptron Learning for AND Gate
+def perceptron_learning(inputs, targets, weights, learning_rate, activation_function, max_epochs=1000, threshold=0.002):
+    epochs = 0
+    errors = []
+
+    while epochs < max_epochs:
+        epoch_error = 0
+        for i in range(len(inputs)):
+            weighted_sum = summation_unit(inputs[i], weights)
+            output = activation_function(weighted_sum)
+            error = calculate_error(targets[i], output)
+            weights += learning_rate * error * inputs[i]
+            epoch_error += error**2
+
+        errors.append(epoch_error)
+        epochs += 1
+        if epoch_error <= threshold:
+            break
+
+    return weights, errors, epochs
+
+# AND Gate Input
+inputs = np.array([[1, 0, 0], [1, 0, 1], [1, 1, 0], [1, 1, 1]])  # with bias input
+targets = np.array([0, 0, 0, 1])
+
+# Initial Weights
+weights = np.array([10, 0.2, -0.75])
+
+# Learning
+final_weights, errors, epochs = perceptron_learning(inputs, targets, weights, 0.05, step_function)
+
+# Plotting Error
+plt.plot(range(epochs), errors)
+plt.xlabel('Epochs')
+plt.ylabel('Sum-Squared Error')
+plt.title('Error vs Epochs')
+plt.show()
+
+# A3: Perceptron with Various Activation Functions
+activation_functions = [step_function, bipolar_step_function, sigmoid, relu]
+function_names = ['Step', 'Bipolar Step', 'Sigmoid', 'ReLU']
+
+for func, name in zip(activation_functions, function_names):
+    final_weights, errors, epochs = perceptron_learning(inputs, targets, weights, 0.05, func)
+    plt.plot(range(epochs), errors, label=name)
+
+plt.xlabel('Epochs')
+plt.ylabel('Sum-Squared Error')
+plt.title('Error vs Epochs for Different Activation Functions')
+plt.legend()
+plt.show()
+
+# A4: Perceptron with Varying Learning Rates
+learning_rates = [0.1 * i for i in range(1, 11)]
+iterations = []
+
+for lr in learning_rates:
+    _, _, epochs = perceptron_learning(inputs, targets, weights, lr, step_function)
+    iterations.append(epochs)
+
+plt.plot(learning_rates, iterations)
+plt.xlabel('Learning Rate')
+plt.ylabel('Iterations to Converge')
+plt.title('Learning Rate vs Iterations')
+plt.show()
+
+# A5: XOR Gate Perceptron
+xor_inputs = np.array([[1, 0, 0], [1, 0, 1], [1, 1, 0], [1, 1, 1]])
+xor_targets = np.array([0, 1, 1, 0])
+
+final_weights, errors, epochs = perceptron_learning(xor_inputs, xor_targets, weights, 0.05, step_function)
+
+plt.plot(range(epochs), errors)
+plt.xlabel('Epochs')
+plt.ylabel('Sum-Squared Error')
+plt.title('Error vs Epochs for XOR Gate')
+plt.show()
+
+# A6: Perceptron for Customer Data
+df = pd.read_csv(r"C:\Users\prabi\OneDrive\Desktop\V sem\ML\Assignment\java_cc_embed_data.csv")
+df['High Value Tx?'] = df['High Value Tx?'].apply(lambda x: 1 if x == 'Yes' else 0)
+inputs = df[['Candies (#)', 'Mangoes (Kg)', 'Milk Packets (#)']].values
+inputs = np.hstack([np.ones((inputs.shape[0], 1)), inputs])  # Adding bias
+targets = df['High Value Tx?'].values
+
+# Initialize weights and learning rate
+weights = np.random.rand(inputs.shape[1])
+learning_rate = 0.05
+
+# Train perceptron
+final_weights, errors, epochs = perceptron_learning(inputs, targets, weights, learning_rate, sigmoid)
+
+plt.plot(range(epochs), errors)
+plt.xlabel('Epochs')
+plt.ylabel('Sum-Squared Error')
+plt.title('Error vs Epochs for Customer Data Perceptron')
+plt.show()
+
+# A7: Comparison with Matrix Pseudo-Inverse
+pseudo_inverse_weights = np.dot(np.linalg.pinv(inputs), targets)
+print("Weights from Pseudo-Inverse Method:", pseudo_inverse_weights)
+print("Final Weights from Perceptron Learning:", final_weights)
+
+# A8: Neural Network for AND Gate with Backpropagation
+class NeuralNetwork:
+    def _init_(self, input_size, hidden_size, output_size, learning_rate=0.05):
+        self.weights_input_hidden = np.random.rand(input_size, hidden_size)
+        self.weights_hidden_output = np.random.rand(hidden_size, output_size)
+        self.learning_rate = learning_rate
+
+    def sigmoid(self, x):
+        return 1 / (1 + np.exp(-x))
+
+    def sigmoid_derivative(self, x):
+        return x * (1 - x)
+
+    def forward(self, inputs):
+        self.hidden_input = np.dot(inputs, self.weights_input_hidden)
+        self.hidden_output = self.sigmoid(self.hidden_input)
+        self.final_input = np.dot(self.hidden_output, self.weights_hidden_output)
+        self.final_output = self.sigmoid(self.final_input)
+        return self.final_output
+
+    def backward(self, inputs, targets, output):
+        error = targets - output
+        d_output = error * self.sigmoid_derivative(output)
+        error_hidden = d_output.dot(self.weights_hidden_output.T)
+        d_hidden = error_hidden * self.sigmoid_derivative(self.hidden_output)
+        self.weights_hidden_output += self.hidden_output.T.dot(d_output) * self.learning_rate
+        self.weights_input_hidden += inputs.T.dot(d_hidden) * self.learning_rate
+
+    def train(self, inputs, targets, epochs=1000, threshold=0.002):
+        errors = []
+        for epoch in range(epochs):
+            output = self.forward(inputs)
+            self.backward(inputs, targets, output)
+            epoch_error = np.mean((targets - output) ** 2)
+            errors.append(epoch_error)
+            if epoch_error <= threshold:
+                break
+        return errors
+
+# AND Gate Data
+inputs = np.array([[1, 0, 0], [1, 0, 1], [1, 1, 0], [1, 1, 1]])  # with bias input
+targets = np.array([[0], [0], [0], [1]])
+
+# Neural Network with 2 hidden units
+nn = NeuralNetwork(input_size=3, hidden_size=2, output_size=1)
+errors = nn.train(inputs, targets)
+
+plt.plot(errors)
+plt.xlabel('Epochs')
+plt.ylabel('Mean Squared Error')
+plt.title('Error vs Epochs for Neural Network AND Gate')
+plt.show()
+
+# A9: Neural Network for XOR Gate
+xor_inputs = np.array([[1, 0, 0], [1, 0, 1], [1, 1, 0], [1, 1, 1]])
+xor_targets = np.array([[0], [1], [1], [0]])
+
+# Neural Network with 2 hidden units
+nn = NeuralNetwork(input_size=3, hidden_size=2, output_size=1)
+errors = nn.train(xor_inputs, xor_targets)
+
+plt.plot(errors)
+plt.xlabel('Epochs')
+plt.ylabel('Mean Squared Error')
+plt.title('Error vs Epochs for Neural Network XOR Gate')
+plt.show()
+
+# A10: Perceptron with 2 Output Nodes
+def perceptron_two_outputs(inputs, targets, weights, learning_rate, activation_function, max_epochs=1000, threshold=0.002):
+    epochs = 0
+    errors = []
+
+    while epochs < max_epochs:
+        epoch_error = 0
+        for i in range(len(inputs)):
+            weighted_sum = summation_unit(inputs[i], weights)
+            output = np.array([activation_function(weighted_sum[0]), activation_function(weighted_sum[1])])
+            error = targets[i] - output
+            weights += learning_rate * np.outer(inputs[i], error)
+            epoch_error += np.sum(error**2)
+
+        errors.append(epoch_error)
+        epochs += 1
+        if epoch_error <= threshold:
+            break
+
+    return weights, errors, epochs
+
+# Input and Target for 2 Output Nodes
+targets = np.array([[1, 0], [1, 0], [1, 0], [0, 1]])
+
+# Initial Weights for 2 Outputs
+weights = np.random.rand(inputs.shape[1], 2)
+
+# Learning
+final_weights, errors, epochs = perceptron_two_outputs(inputs, targets, weights, 0.05, step_function)
+
+plt.plot(range(epochs), errors)
+plt.xlabel('Epochs')
+plt.ylabel('Sum-Squared Error')
+plt.title('Error vs Epochs for 2 Output Nodes')
+plt.show()
+
+# A11: Using MLPClassifier() for AND and XOR Gates
+clf = MLPClassifier(hidden_layer_sizes=(2,), activation='logistic', learning_rate_init=0.05, max_iter=1000)
+clf.fit(inputs[:, 1:], targets.ravel())  # Excluding bias
+print("AND Gate Prediction:", clf.predict(inputs[:, 1:]))
+
+# XOR Gate Data
+clf.fit(xor_inputs[:, 1:], xor_targets.ravel())
+print("XOR Gate Prediction:", clf.predict(xor_inputs[:, 1:]))
+
+# A12: Using MLPClassifier() on Project Dataset
+clf = MLPClassifier(hidden_layer_sizes=(2,), activation='logistic', learning_rate_init=0.05, max_iter=1000)
+clf.fit(inputs[:, 1:], targets)  # Excluding bias
+
+predictions = clf.predict(inputs[:, 1:])
+print("Project Data Predictions:", predictions)
